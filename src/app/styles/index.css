@@ -92,6 +92,28 @@
   }
 }
 
+@keyframes aurora-drift-1 {
+  0%,
+  100% {
+    transform: translate(-8%, -6%) scale(1);
+  }
+
+  50% {
+    transform: translate(10%, 8%) scale(1.15);
+  }
+}
+
+@keyframes aurora-drift-2 {
+  0%,
+  100% {
+    transform: translate(8%, 4%) scale(1.05);
+  }
+
+  50% {
+    transform: translate(-10%, -8%) scale(1);
+  }
+}
+
 @layer utilities {
   .animate-skeleton {
     background-image: linear-gradient(
@@ -126,5 +148,20 @@
 
   .animate-chart-fade {
     animation: chart-fade-up 0.45s ease-out both;
+  }
+
+  .animate-aurora-1 {
+    animation: aurora-drift-1 16s ease-in-out infinite;
+  }
+
+  .animate-aurora-2 {
+    animation: aurora-drift-2 20s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-aurora-1,
+    .animate-aurora-2 {
+      animation: none;
+    }
   }
 }

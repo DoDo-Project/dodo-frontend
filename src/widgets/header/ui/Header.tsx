@@ -53,7 +53,7 @@ export function Header() {
   const isLoggedIn = useIsLoggedIn();
 
   return (
-    <header className="border-b border-neutral-200 bg-white">
+    <header className="relative z-20 border-b border-neutral-200 bg-white">
       <div className="mx-auto flex h-14 max-w-5xl items-center px-4">
         <Link to="/" className="flex shrink-0 items-center py-1" aria-label="DoDo 홈">
           <DoDoLogo className="h-8 w-auto" />
