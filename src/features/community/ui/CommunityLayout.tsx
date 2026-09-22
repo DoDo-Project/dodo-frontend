@@ -24,7 +24,8 @@ export function CommunityLayout({ eyebrow, title, description, sidebar, content 
 
       <div className={[hasHeader ? 'mt-10' : '', 'grid items-start gap-6', contentGridClass].join(' ').trim()}>
         <div className="min-w-0 space-y-6">{content}</div>
-        {sidebar ? <aside className="space-y-6 lg:sticky lg:top-8">{sidebar}</aside> : null}
+        {/* 모바일에서는 프로필/글쓰기 카드가 콘텐츠보다 먼저 보이도록 순서를 위로 올림 */}
+        {sidebar ? <aside className="order-first space-y-6 lg:order-0 lg:sticky lg:top-8">{sidebar}</aside> : null}
       </div>
     </div>
   );
