@@ -9,6 +9,8 @@ interface BoardDetailContentProps {
   pageInfo?: CommentPageInfo;
   canManage: boolean;
   currentUserId?: string | null;
+  /** 댓글 작성자 UUID(currentUserId)가 내려오지 않는 백엔드 응답을 대비한 본인 확인용 보조 수단 */
+  currentUserNickname?: string | null;
   isCommentsLoading: boolean;
   commentsErrorMessage?: string;
   isCreatingComment: boolean;
@@ -90,6 +92,11 @@ function getCommentAuthor(comment: BoardComment) {
   };
 }
 
+// 익명 처리 전 원본 닉네임 (본인 여부 비교용) — 빈 값이면 비교 대상에서 제외되도록 null
+function getRawCommentAuthorNickname(comment: BoardComment): string | null {
+  return comment.author?.nickname?.trim() || comment.nickname?.trim() || null;
+}
+
 function getCommentUserId(comment: BoardComment) {
   return comment.author?.userId ?? comment.userId ?? null;
 }
@@ -147,6 +154,7 @@ export function BoardDetailContent({
   pageInfo,
   canManage,
   currentUserId,
+  currentUserNickname,
   isCommentsLoading,
   commentsErrorMessage,
   isCreatingComment,
@@ -394,6 +402,7 @@ export function BoardDetailContent({
                 <CommentRow
                   comment={comment}
                   currentUserId={currentUserId}
+                  currentUserNickname={currentUserNickname}
                   isEditing={editingCommentId === comment.commentId}
                   editDraft={editingCommentId === comment.commentId ? editDraft : comment.commentContent}
                   isMutating={isUpdatingComment || isDeletingComment}
@@ -456,6 +465,7 @@ export function BoardDetailContent({
                     key={reply.commentId}
                     comment={reply}
                     currentUserId={currentUserId}
+                    currentUserNickname={currentUserNickname}
                     indent
                     isEditing={editingCommentId === reply.commentId}
                     editDraft={editingCommentId === reply.commentId ? editDraft : reply.commentContent}
@@ -649,6 +659,7 @@ function ReactionButton({ reactionType, label, count, active, disabled, onClick 
 interface CommentRowProps {
   comment: BoardComment;
   currentUserId?: string | null;
+  currentUserNickname?: string | null;
   indent?: boolean;
   isEditing: boolean;
   editDraft: string;
@@ -666,6 +677,7 @@ interface CommentRowProps {
 function CommentRow({
   comment,
   currentUserId,
+  currentUserNickname,
   indent = false,
   isEditing,
   editDraft,
@@ -681,9 +693,13 @@ function CommentRow({
 }: CommentRowProps) {
   const { nickname } = getCommentAuthor(comment);
   const commentUserId = getCommentUserId(comment);
-  const canManage = Boolean(
-    currentUserId && commentUserId && currentUserId === commentUserId && !isDeletedComment(comment),
-  );
+  const commentAuthorNickname = getRawCommentAuthorNickname(comment);
+  // 작성자 UUID(userId)가 응답에 없는 경우를 대비해 닉네임 일치도 본인 확인 수단으로 함께 사용
+  // (게시글 본인 확인도 같은 방식 — 위 canManage prop 계산부 참고)
+  const isOwnComment =
+    (Boolean(currentUserId) && Boolean(commentUserId) && currentUserId === commentUserId) ||
+    (Boolean(currentUserNickname) && Boolean(commentAuthorNickname) && currentUserNickname === commentAuthorNickname);
+  const canManage = Boolean(isOwnComment && !isDeletedComment(comment));
   const content = isDeletedComment(comment) ? DETAIL_COPY.deletedComment : comment.commentContent;
   const dateTime = getCommentTimestamp(comment);
 

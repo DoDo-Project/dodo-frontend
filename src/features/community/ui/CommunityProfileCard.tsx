@@ -36,7 +36,8 @@ export function CommunityProfileCard({ profileUrl, nickname }: CommunityProfileC
         </div>
       </div>
 
-      <div className="grid gap-3">
+      {/* 모바일: 카드가 콘텐츠보다 먼저 보이므로 버튼을 가로로 배치해 공간 절약 / lg 이상: 기존처럼 세로 스택 */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
         <Link
           to="/community/new"
           className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-neutral-900 shadow-[inset_0_0_0_1px_rgba(229,229,229,1)] transition-colors hover:bg-neutral-50"

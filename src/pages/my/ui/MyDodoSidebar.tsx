@@ -12,6 +12,8 @@ import { LogoutConfirmDialog } from '@/pages/my/ui/LogoutConfirmDialog';
 
 interface MyDodoSidebarProps {
   activeKey: MyDodoMenuKey;
+  /** 링크 클릭 시 호출 (모바일 햄버거 메뉴를 닫는 용도) */
+  onNavigate?: () => void;
 }
 
 function menuItemClass(active: boolean) {
@@ -27,10 +29,12 @@ function SidebarSection({
   section,
   activeKey,
   onLogout,
+  onNavigate,
 }: {
   section: MyDodoMenuSection;
   activeKey: MyDodoMenuKey;
   onLogout: () => void;
+  onNavigate?: () => void;
 }) {
   const items = MY_DODO_MENU_ITEMS.filter((item) => item.section === section);
 
@@ -44,7 +48,12 @@ function SidebarSection({
               {item.label}
             </button>
           ) : (
-            <Link key={item.key} to={getMyDodoMenuHref(item.key)} className={menuItemClass(item.key === activeKey)}>
+            <Link
+              key={item.key}
+              to={getMyDodoMenuHref(item.key)}
+              onClick={onNavigate}
+              className={menuItemClass(item.key === activeKey)}
+            >
               {item.label}
             </Link>
           ),
@@ -54,14 +63,24 @@ function SidebarSection({
   );
 }
 
-export function MyDodoSidebar({ activeKey }: MyDodoSidebarProps) {
+export function MyDodoSidebar({ activeKey, onNavigate }: MyDodoSidebarProps) {
   const [logoutOpen, setLogoutOpen] = useState(false);
 
   return (
     <div className="mt-6 border-t border-neutral-200/80 pt-6">
       <div className="flex flex-col gap-8">
-        <SidebarSection section="pet" activeKey={activeKey} onLogout={() => setLogoutOpen(true)} />
-        <SidebarSection section="account" activeKey={activeKey} onLogout={() => setLogoutOpen(true)} />
+        <SidebarSection
+          section="pet"
+          activeKey={activeKey}
+          onLogout={() => setLogoutOpen(true)}
+          onNavigate={onNavigate}
+        />
+        <SidebarSection
+          section="account"
+          activeKey={activeKey}
+          onLogout={() => setLogoutOpen(true)}
+          onNavigate={onNavigate}
+        />
       </div>
 
       <LogoutConfirmDialog open={logoutOpen} onClose={() => setLogoutOpen(false)} />

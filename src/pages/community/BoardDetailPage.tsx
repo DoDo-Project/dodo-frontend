@@ -259,6 +259,7 @@ export function BoardDetailPage() {
             pageInfo={commentsQuery.data?.pageInfo}
             canManage={canManage}
             currentUserId={user?.userId ?? null}
+            currentUserNickname={nickname}
             isCommentsLoading={commentsQuery.isLoading}
             commentsErrorMessage={
               commentsQuery.isError

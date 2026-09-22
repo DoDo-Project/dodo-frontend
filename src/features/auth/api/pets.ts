@@ -293,7 +293,10 @@ export async function createHealthAnalysis(
   petId: number,
   payload: CreateHealthAnalysisRequest,
 ): Promise<CreateHealthAnalysisResponse> {
-  const response = await apiClient.post<CreateHealthAnalysisResponse>(`/health/analysis/ai-report/${petId}`, payload);
+  // AI가 보고서를 직접 생성해서 응답하는 동기 호출이라 전역 10초 타임아웃보다 오래 걸릴 수 있음 (넉넉하게 연장)
+  const response = await apiClient.post<CreateHealthAnalysisResponse>(`/health/analysis/ai-report/${petId}`, payload, {
+    timeout: 60_000,
+  });
   return response.data;
 }
 

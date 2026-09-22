@@ -102,7 +102,7 @@ export function HealthAnalysisCreateForm({ petId }: HealthAnalysisCreateFormProp
 
       {error ? <p className="text-sm text-red-500">{error}</p> : null}
 
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-1.5">
         <button
           type="submit"
           disabled={isPending}
@@ -110,6 +110,10 @@ export function HealthAnalysisCreateForm({ petId }: HealthAnalysisCreateFormProp
         >
           {isPending ? '생성 중...' : 'AI 분석 생성'}
         </button>
+        {/* AI가 실제로 보고서를 작성하는 동안 응답이 오는 동기 요청이라 수십 초 걸릴 수 있음 — 멈춘 게 아니라는 안내 */}
+        {isPending ? (
+          <p className="text-xs text-neutral-400">AI가 보고서를 작성하고 있어요. 최대 1분 정도 걸릴 수 있어요.</p>
+        ) : null}
       </div>
 
       <Toast open={Boolean(toastMessage)} message={toastMessage} onClose={() => setToastMessage('')} />
