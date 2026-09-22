@@ -19,10 +19,17 @@ declare namespace naver.maps {
     coord: LatLng;
   }
 
+  class LatLngBounds {
+    constructor(sw: LatLng, ne: LatLng);
+    extend(latlng: LatLng): LatLngBounds;
+  }
+
   class Map {
     constructor(element: string | HTMLElement, options: MapOptions);
     setCenter(latlng: LatLng): void;
     setZoom(zoom: number): void;
+    /** 주어진 영역이 모두 보이도록 지도 범위를 맞춤 (margin: 픽셀 단위 여백) */
+    fitBounds(bounds: LatLngBounds, margin?: number): void;
     addListener(eventName: string, listener: (event: PointerEvent) => void): MapEventListener;
     destroy(): void;
   }
@@ -69,6 +76,22 @@ declare namespace naver.maps {
     constructor(options: MarkerOptions);
     setMap(map: Map | null): void;
     setPosition(position: LatLng): void;
+  }
+
+  interface PolylineOptions {
+    map?: Map;
+    path: LatLng[];
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeWeight?: number;
+    /** 'solid' | 'shortdash' | 'dash' 등 */
+    strokeStyle?: string;
+  }
+
+  class Polyline {
+    constructor(options: PolylineOptions);
+    setMap(map: Map | null): void;
+    setPath(path: LatLng[]): void;
   }
 }
 
