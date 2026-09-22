@@ -8,14 +8,21 @@ import {
   formatDateTimeLabel,
   formatDistanceLabel,
   formatDurationLabel,
+  formatTimeRangeLabel,
 } from '../lib/formatters';
 import { useActivityHistoryDetail } from '../model/useActivityHistoryDetail';
 import { useActivityHistoryList } from '../model/useActivityHistoryList';
+import { useActivityHistoryRoute } from '../model/useActivityHistoryRoute';
+import { useDeleteActivityHistory } from '../model/useDeleteActivityHistory';
+import { ActivityRouteMap } from './ActivityRouteMap';
 
 const PAGE_SIZE = 10;
 
+const DELETE_CONFIRM_MESSAGE = '이 산책 기록을 삭제할까요? 삭제 후에는 복구할 수 없어요.';
+
 function ActivityDetailPanel({ historyId }: { historyId: number }) {
   const { data, isLoading, isError } = useActivityHistoryDetail(historyId);
+  const routeQuery = useActivityHistoryRoute(historyId);
 
   if (isLoading) {
     return <p className="px-4 py-3 text-sm text-neutral-500">상세 정보를 불러오는 중이에요...</p>;
@@ -25,29 +32,46 @@ function ActivityDetailPanel({ historyId }: { historyId: number }) {
     return <p className="px-4 py-3 text-sm text-red-500">상세 정보를 불러오지 못했어요.</p>;
   }
 
+  const routePoints = routeQuery.data?.routePoints ?? [];
+
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-neutral-100 px-4 py-3.5 text-sm">
-      <div>
-        <dt className="text-xs text-neutral-400">시작 시각</dt>
-        <dd className="mt-0.5 text-neutral-800">{formatDateTimeLabel(data.activityHistoryStartAt)}</dd>
+    <div className="border-t border-neutral-100">
+      <div className="h-56 w-full overflow-hidden bg-neutral-100">
+        {routeQuery.isLoading ? (
+          <div className="flex h-full w-full items-center justify-center text-sm text-neutral-400">
+            경로를 불러오는 중이에요...
+          </div>
+        ) : routeQuery.isError ? (
+          <div className="flex h-full w-full items-center justify-center text-sm text-red-500">
+            경로 정보를 불러오지 못했어요.
+          </div>
+        ) : routePoints.length === 0 ? (
+          <div className="flex h-full w-full items-center justify-center text-sm text-neutral-400">
+            기록된 이동 경로가 없어요.
+          </div>
+        ) : (
+          <ActivityRouteMap
+            routePoints={routePoints}
+            fallbackCenter={{ lat: data.startLatitude, lng: data.startLongitude }}
+          />
+        )}
       </div>
-      <div>
-        <dt className="text-xs text-neutral-400">종료 시각</dt>
-        <dd className="mt-0.5 text-neutral-800">{formatDateTimeLabel(data.activityHistoryEndAt)}</dd>
-      </div>
-      <div>
-        <dt className="text-xs text-neutral-400">시작 위치</dt>
-        <dd className="mt-0.5 text-neutral-800">
-          {data.startLatitude.toFixed(5)}, {data.startLongitude.toFixed(5)}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-xs text-neutral-400">반응</dt>
-        <dd className="mt-0.5 text-neutral-800">
-          {data.reactionCount}개{data.isLikedByMe ? ' · 내가 좋아요 누름' : ''}
-        </dd>
-      </div>
-    </dl>
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 px-4 py-3.5 text-sm">
+        <div>
+          <dt className="text-xs text-neutral-400">시간</dt>
+          <dd className="mt-0.5 text-neutral-800">
+            {formatTimeRangeLabel(data.activityHistoryStartAt, data.activityHistoryEndAt)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-neutral-400">반응</dt>
+          <dd className="mt-0.5 text-neutral-800">
+            {data.reactionCount}개{data.isLikedByMe ? ' · 내가 좋아요 누름' : ''}
+          </dd>
+        </div>
+      </dl>
+    </div>
   );
 }
 
@@ -61,17 +85,39 @@ export function ActivityHistoryList({
   petId,
   emptyMessage = '아직 기록된 산책이 없습니다.',
 }: ActivityHistoryListProps) {
-  const [loadedSize, setLoadedSize] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState('');
+  // 펫 필터를 바꿨는데 이전 페이지 번호가 남아 있으면 빈 목록으로 보일 수 있어 0페이지로 되돌림
+  // (렌더 중 state 조정 — https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  const [prevPetId, setPrevPetId] = useState(petId);
+  if (petId !== prevPetId) {
+    setPrevPetId(petId);
+    setPage(0);
+  }
+
   const { data, isLoading, isError, error, refetch } = useActivityHistoryList({
-    page: 0,
-    size: loadedSize,
+    page,
+    size: PAGE_SIZE,
     sort: 'activityHistoryStartAt,desc',
   });
+  const { mutateAsync: removeActivityHistory, isPending: isDeleting } = useDeleteActivityHistory();
 
   const allHistories = data?.histories ?? [];
   const histories = petId === 'all' ? allHistories : allHistories.filter((item) => item.pet.id === petId);
-  const hasMore = (data?.totalElements ?? 0) > allHistories.length;
+  const totalPages = data?.totalPages ?? 0;
+
+  const handleDelete = async (historyId: number) => {
+    if (!window.confirm(DELETE_CONFIRM_MESSAGE)) return;
+
+    setDeleteError('');
+    try {
+      await removeActivityHistory(historyId);
+      if (expandedId === historyId) setExpandedId(null);
+    } catch (deleteActivityError) {
+      setDeleteError(getApiErrorMessage(deleteActivityError, '산책 기록을 삭제하지 못했어요.'));
+    }
+  };
 
   if (isLoading) {
     return <p className="text-sm text-neutral-500">산책 기록을 불러오는 중이에요...</p>;
@@ -102,15 +148,17 @@ export function ActivityHistoryList({
 
   return (
     <div className="space-y-2.5">
+      {deleteError ? <p className="text-sm text-red-500">{deleteError}</p> : null}
+
       <div className="space-y-2.5">
         {histories.map((item) => (
           <article key={item.historyId} className="overflow-hidden rounded-[16px] border border-neutral-200 bg-white">
-            <button
-              type="button"
-              onClick={() => setExpandedId((prev) => (prev === item.historyId ? null : item.historyId))}
-              className="flex w-full flex-col gap-3 px-4 py-3.5 text-left lg:flex-row lg:items-center lg:justify-between"
-            >
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex w-full flex-col gap-3 px-4 py-3.5 lg:flex-row lg:items-center lg:justify-between">
+              <button
+                type="button"
+                onClick={() => setExpandedId((prev) => (prev === item.historyId ? null : item.historyId))}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              >
                 {item.pet.profileImageUrl ? (
                   <img src={item.pet.profileImageUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
                 ) : (
@@ -134,25 +182,52 @@ export function ActivityHistoryList({
                     </span>
                   </div>
                 </div>
+              </button>
+
+              <div className="flex shrink-0 items-center gap-4 self-end lg:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setExpandedId((prev) => (prev === item.historyId ? null : item.historyId))}
+                  className="text-sm text-neutral-400 transition-colors hover:text-neutral-700"
+                >
+                  {expandedId === item.historyId ? '접기' : '상세보기'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(item.historyId)}
+                  disabled={isDeleting}
+                  className="text-sm text-neutral-400 transition-colors hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  삭제
+                </button>
               </div>
-              <span className="shrink-0 text-sm text-neutral-400">
-                {expandedId === item.historyId ? '접기' : '상세보기'}
-              </span>
-            </button>
+            </div>
 
             {expandedId === item.historyId && <ActivityDetailPanel historyId={item.historyId} />}
           </article>
         ))}
       </div>
 
-      {hasMore && (
-        <div className="flex justify-center pt-1">
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 pt-1">
           <button
             type="button"
-            onClick={() => setLoadedSize((prev) => prev + PAGE_SIZE)}
-            className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+            disabled={page <= 0}
+            onClick={() => setPage((prev) => prev - 1)}
+            className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
           >
-            더보기
+            이전
+          </button>
+          <span className="text-sm text-neutral-500">
+            {page + 1} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((prev) => prev + 1)}
+            className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            다음
           </button>
         </div>
       )}
