@@ -8,7 +8,9 @@ import type {
 } from '../model/types';
 
 export async function getNotificationList(params?: NotificationListParams): Promise<NotificationListResponse> {
-  const response = await apiClient.get<NotificationListResponse>('/notifications', { params });
+  // 서버 요청 page는 1부터 시작 (응답 pageInfo.page는 0부터 시작이라 프론트 상태는 0-based로 유지하고 여기서만 보정)
+  const requestParams = params?.page !== undefined ? { ...params, page: params.page + 1 } : params;
+  const response = await apiClient.get<NotificationListResponse>('/notifications', { params: requestParams });
   return response.data;
 }
 
